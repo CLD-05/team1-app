@@ -63,9 +63,6 @@ target/
 
 # Terraform & AWS (Config/Infra Repo)
 .terraform/
-.terraform.lock.hcl
-
-# 테라폼 상태 파일 (가이드라인 - 로컬 보관 금지, S3 backend 사용)
 *.tfstate
 *.tfstate.backup
 
@@ -83,3 +80,5 @@ kubeconfig
 .env.*
 secrets.yml
 application-secret.yml
+*.pem
+credentials
