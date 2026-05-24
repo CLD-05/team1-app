@@ -11,7 +11,7 @@ public record CourseResponseDto(
     // 엔티티를 DTO로 깔끔하게 변환해 주는 편의 메서드
     public static CourseResponseDto from(Course course) {
         return new CourseResponseDto(
-            course.getId(),
+            course.getCourseId(),
             course.getCourseCode(),
             course.getCourseName(),
             course.getCapacity()
