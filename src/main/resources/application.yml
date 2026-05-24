@@ -32,3 +32,7 @@ management:
       probes:
         enabled: true
       show-details: when_authorized
+
+jwt:
+  secret: ${JWT_SECRET:dev-only-secret-key-at-least-256-bits-long-please-change-in-production-environment}
+  expiration-seconds: ${JWT_EXPIRATION_SECONDS:14400}
