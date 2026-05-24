@@ -30,7 +30,7 @@ public class Course {
     private String courseName;
 
     @Column(name = "course_type", nullable = false)
-    private Integer courseType;
+    private String courseType;
 
     @Column(name = "credits", nullable = false)
     private Integer credits;
@@ -48,7 +48,7 @@ public class Course {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Course(String courseCode, String courseName, Integer courseType, Integer credits, Integer capacity, Integer currentEnrollment) {
+    public Course(String courseCode, String courseName, String courseType, Integer credits, Integer capacity, Integer currentEnrollment) {
         this.courseCode = courseCode;
         this.courseName = courseName;
         this.courseType = courseType;
