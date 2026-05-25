@@ -2,8 +2,8 @@
 -- 비밀번호: 모든 계정 'password' (BCrypt strength 10 해시)
 
 INSERT INTO students (student_number, name, grade, email, password) VALUES
-                                                                        ('20231001', '김학생', 3, 'student1@test.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-                                                                        ('20231002', '이학생', 2, 'student2@test.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+                                                                        ('20231001', '김학생', 3, 'student1@test.com', '$2a$10$QYt6EqWzVmUJ577nwFsK.O6nHwj1774wZbsiYfAM6ER69SZ/NOyTK'),
+                                                                        ('20231002', '이학생', 2, 'student2@test.com', '$2a$10$QYt6EqWzVmUJ577nwFsK.O6nHwj1774wZbsiYfAM6ER69SZ/NOyTK');
 
 INSERT INTO courses (course_code, course_name, course_type, credits, capacity, current_enrollment) VALUES
                                                                                                        ('CSE2001', '자료구조',     'MAJOR_REQUIRED',   3, 50,  0),
