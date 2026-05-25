@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>강의 검색</title>
+</head>
+<body>
+
+<h1>강의 검색</h1>
+
+<nav>
+    <a href="/enrollments">내 수강내역</a> |
+    <form method="POST" action="/logout" style="display:inline">
+        <button type="submit">로그아웃</button>
+    </form>
+</nav>
+
+<hr>
+
+<!-- 검색 폼 -->
+<form method="GET" action="/courses">
+    <input type="text" name="name" th:value="${keyword}" placeholder="강의명으로 검색">
+    <button type="submit">검색</button>
+</form>
+
+<p th:text="'검색 결과: 총 ' + ${totalElements} + '개 강의'"></p>
+
+<!-- 강의 목록 -->
+<table border="1" cellpadding="6">
+    <thead>
+        <tr>
+            <th>강의코드</th>
+            <th>강의명</th>
+            <th>이수구분</th>
+            <th>학점</th>
+            <th>신청현황</th>
+            <th>수강신청</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:if="${#lists.isEmpty(courses)}">
+            <td colspan="6">검색 결과가 없습니다.</td>
+        </tr>
+        <tr th:each="course : ${courses}">
+            <td th:text="${course.courseCode}"></td>
+            <td th:text="${course.courseName}"></td>
+            <td th:text="${course.courseType}"></td>
+            <td th:text="${course.credits} + '학점'"></td>
+            <td th:text="${course.currentEnrollment} + ' / ' + ${course.capacity}"></td>
+            <td>
+                <form method="POST" action="/enrollments">
+                    <input type="hidden" name="courseId" th:value="${course.courseId}">
+                    <button type="submit"
+                            th:disabled="${course.currentEnrollment >= course.capacity}"
+                            th:text="${course.currentEnrollment >= course.capacity} ? '마감' : '신청'">
+                    </button>
+                </form>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- 페이지네이션 -->
+<div>
+    <a th:if="${currentPage > 0}"
+       th:href="@{/courses(name=${keyword}, page=${currentPage - 1})}">
+        &lt; 이전
+    </a>
+    <span th:text="'  ' + (${currentPage} + 1) + ' / ' + ${totalPages} + '  '"></span>
+    <a th:if="${currentPage + 1 < totalPages}"
+       th:href="@{/courses(name=${keyword}, page=${currentPage + 1})}">
+        다음 &gt;
+    </a>
+</div>
+
+</body>
+</html>

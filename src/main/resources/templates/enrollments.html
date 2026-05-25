@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>내 수강내역</title>
+</head>
+<body>
+
+<h1 th:text="${studentName} + '님의 수강내역'"></h1>
+<p th:text="'총 신청 학점: ' + ${totalCredits} + '학점'"></p>
+
+<nav>
+    <a href="/courses">강의 검색</a> |
+    <form method="POST" action="/logout" style="display:inline">
+        <button type="submit">로그아웃</button>
+    </form>
+</nav>
+
+<hr>
+
+<!-- 성공/실패 메시지 -->
+<p th:if="${successMessage}" th:text="${successMessage}" style="color:green"></p>
+<p th:if="${errorMessage}" th:text="${errorMessage}" style="color:red"></p>
+
+<!-- 수강 내역 테이블 -->
+<table border="1" cellpadding="6">
+    <thead>
+        <tr>
+            <th>강의코드</th>
+            <th>강의명</th>
+            <th>이수구분</th>
+            <th>학점</th>
+            <th>신청일시</th>
+            <th>취소</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:if="${#lists.isEmpty(enrollments)}">
+            <td colspan="6">신청한 강의가 없습니다.</td>
+        </tr>
+        <tr th:each="enrollment : ${enrollments}">
+            <td th:text="${enrollment.course.courseCode}"></td>
+            <td th:text="${enrollment.course.courseName}"></td>
+            <td th:text="${enrollment.course.courseType}"></td>
+            <td th:text="${enrollment.course.credits} + '학점'"></td>
+            <td th:text="${#temporals.format(enrollment.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <form th:action="@{/enrollments/{id}/cancel(id=${enrollment.enrollmentId})}" method="POST">
+                    <button type="submit">취소</button>
+                </form>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
