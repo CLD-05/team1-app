@@ -65,7 +65,7 @@ jobs:
           git config --global user.name "Leeyunbum"
           git config --global user.email "yunbum@example.com"
           
-          git clone https://github.com/CLD-05/team1-config.git config-repo
+          git clone https://${{ secrets.GH_PAT }}@github.com/CLD-05/team1-config.git config-repo
           cd config-repo/apps/team1-app/overlays/dev
           
           kustomize edit set image nginx:1.27=495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/course-service:${{ github.sha }}
