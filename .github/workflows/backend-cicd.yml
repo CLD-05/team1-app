@@ -6,8 +6,8 @@ on:
       - develop
 
 permissions:
-  id-token: write
-  contents: read
+  id-token: write   # OIDC 인증을 위해 필수
+  contents: write   # team1-config 저장소 푸시를 위해 필수
 
 jobs:
   build-and-push:
@@ -29,7 +29,7 @@ jobs:
       - name: Grant execute permission
         run: chmod +x mvnw
 
-      # 4. AWS OIDC 인증
+      # 4. AWS OIDC 인증 (AssumeRoleWithWebIdentity 실행 단계)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -50,7 +50,7 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
-      # 7. Docker 이미지 Push
+      # 7. Docker 이미지 Push (ECR 권한 검증 단계)
       - name: Push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -58,3 +58,18 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # 8. Kustomize 태그 자동 업데이트 및 Config 저장소 Push
+      - name: Update Kustomize Image Tag & Push to Config Repo
+        run: |
+          git config --global user.name "Leeyunbum"
+          git config --global user.email "yunbum@example.com"
+          
+          git clone https://github.com/CLD-05/team1-config.git config-repo
+          cd config-repo/apps/team1-app/overlays/dev
+          
+          kustomize edit set image nginx:1.27=495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/course-service:${{ github.sha }}
+          
+          git add kustomization.yaml
+          git commit -m "deploy: 백엔드 dev 환경 최신 빌드 이미지 태그 반영 (${{ github.sha }})"
+          git push origin main
