@@ -18,7 +18,7 @@ public class EnrollmentPeriodValidator {
     };
 
     // 서버 운영 시간
-    private static final LocalTime SERVER_OPEN  = LocalTime.of(10, 0);
+    private static final LocalTime SERVER_OPEN  = LocalTime.of(9, 30);
     private static final LocalTime SERVER_CLOSE = LocalTime.of(16, 30);
 
     public void validate() {
