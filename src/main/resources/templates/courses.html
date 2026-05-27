@@ -283,6 +283,10 @@
             display: flex; align-items: center; justify-content: center;
             transition: background 0.15s, border-color 0.15s;
         }
+        .full-text {
+            font-size: 0.82rem;
+            color: var(--gray-400);
+        }
         .page-btn:hover { background: var(--green-50); border-color: var(--green-200); color: var(--green-600); }
         .page-btn.active { background: var(--green-500); border-color: var(--green-500); color: #fff; }
         form.inline-form { display: inline; }
@@ -368,7 +372,12 @@
                 </td>
                 <td>
                     <span th:if="${course.currentEnrollment >= course.capacity}" class="full-text">마감</span>
-                    <form th:unless="${course.currentEnrollment >= course.capacity}"
+
+                    <span th:if="${!enrollmentOpen and course.currentEnrollment < course.capacity}"
+                          class="full-text"
+                          title="수강신청 가능 시간: 10:00~10:30 / 14:00~14:30 / 16:00~16:30"> 신청불가 </span>
+
+                    <form th:if="${enrollmentOpen and course.currentEnrollment < course.capacity}"
                           class="inline-form" th:action="@{/enrollments}" method="post">
                         <input type="hidden" name="courseId" th:value="${course.courseId}">
                         <button type="submit" class="enroll-btn">신청</button>

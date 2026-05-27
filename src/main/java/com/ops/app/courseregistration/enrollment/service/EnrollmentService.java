@@ -22,18 +22,17 @@ public class EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
+    private final EnrollmentPeriodValidator periodValidator;
 
-    /**
-     * 내 수강 내역 조회
-     */
+
+     // 내 수강 내역 조회
     @Transactional(readOnly = true)
     public List<Enrollment> getMyEnrollments(Long studentId) {
         return enrollmentRepository.findByStudentIdWithCourse(studentId);
     }
 
-    /**
-     * 총 신청 학점 계산
-     */
+
+    // 총 신청 학점 계산
     @Transactional(readOnly = true)
     public int getTotalCredits(Long studentId) {
         return getMyEnrollments(studentId).stream()
@@ -59,6 +58,8 @@ public class EnrollmentService {
      */
     @Transactional
     public void enroll(Long studentId, Long courseId) {
+        periodValidator.validate();
+
         // 강의 존재 여부 확인 — 없으면 COURSE_NOT_FOUND
         courseRepository.findById(courseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
@@ -66,7 +67,6 @@ public class EnrollmentService {
         // Step 1. 정원 체크 + 카운터 원자적 증가
         int updated = courseRepository.incrementEnrollmentCount(courseId);
         if (updated == 0) {
-            // current_enrollment >= capacity → 정원 마감
             throw new BusinessException(ErrorCode.COURSE_FULL);
         }
 
