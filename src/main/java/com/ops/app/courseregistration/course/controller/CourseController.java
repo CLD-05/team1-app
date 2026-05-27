@@ -1,5 +1,6 @@
 package com.ops.app.courseregistration.course.controller;
 
+import com.ops.app.courseregistration.enrollment.service.EnrollmentPeriodValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class CourseController {
 
     private final CourseService courseService;
+    private final EnrollmentPeriodValidator periodValidator;
 
     @GetMapping("/courses")
     public String searchCourses(
@@ -33,6 +35,7 @@ public class CourseController {
         model.addAttribute("currentPage", courses.getNumber()); 
         model.addAttribute("totalPages", courses.getTotalPages());
         model.addAttribute("totalElements", courses.getTotalElements());
+        model.addAttribute("enrollmentOpen", periodValidator.isOpen());
         
         return "courses";
     }
