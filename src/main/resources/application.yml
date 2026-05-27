@@ -1,4 +1,9 @@
 spring:
+  datasource:
+    url: jdbc:mysql://host.docker.internal:3306/course_registration
+    username: app
+    password: app
+    driver-class-name: com.mysql.cj.jdbc.Driver
   application:
     name: team1-app
   profiles:
