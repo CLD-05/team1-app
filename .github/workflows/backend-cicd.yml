@@ -6,8 +6,8 @@ on:
       - develop
 
 permissions:
-  id-token: write   # OIDC 인증을 위해 필수
-  contents: write   # team1-config 저장소 푸시를 위해 필수
+  id-token: write # OIDC 인증을 위해 필수
+  contents: write # team1-config 저장소 푸시를 위해 필수
 
 jobs:
   build-and-push:
@@ -22,8 +22,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       # 3. mvnw 실행 권한 부여
       - name: Grant execute permission
@@ -45,7 +45,7 @@ jobs:
       - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: team1-course-service
+          ECR_REPOSITORY: course-service
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -54,7 +54,7 @@ jobs:
       - name: Push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: team1-course-service
+          ECR_REPOSITORY: course-service
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -64,12 +64,12 @@ jobs:
         run: |
           git config --global user.name "Leeyunbum"
           git config --global user.email "yunbum@example.com"
-          
+
           git clone https://${{ secrets.GH_PAT }}@github.com/CLD-05/team1-config.git config-repo
           cd config-repo/apps/team1-app/overlays/dev
-          
-          kustomize edit set image nginx:1.27=495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/team1-course-service:${{ github.sha }}
-          
+
+          kustomize edit set image nginx:1.27=495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/course-service:${{ github.sha }}
+
           git add kustomization.yaml
           git commit -m "deploy: 백엔드 dev 환경 최신 빌드 이미지 태그 반영 (${{ github.sha }})"
           git push origin main
