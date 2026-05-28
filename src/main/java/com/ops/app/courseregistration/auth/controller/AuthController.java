@@ -32,7 +32,7 @@ public class AuthController {
         try {
             String token = authService.login(form.email(), form.password());
             jwtCookieUtil.setAuthCookie(response, token);
-            return "redirect:/";
+            return "redirect:/courses";
         } catch (BusinessException e) {
             model.addAttribute("error", e.getMessage());
             return "login";
