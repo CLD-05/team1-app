@@ -24,7 +24,7 @@ public class JwtCookieUtil {
     public void setAuthCookie(HttpServletResponse response, String token) {
         ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, token)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .sameSite("Strict")
                 .path("/")
                 .maxAge(expirationSeconds)
@@ -35,7 +35,7 @@ public class JwtCookieUtil {
     public void clearAuthCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .sameSite("Strict")
                 .path("/")
                 .maxAge(0)
