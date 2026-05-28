@@ -3,6 +3,7 @@ package com.ops.app.courseregistration.enrollment;
 import com.ops.app.courseregistration.course.entity.Course;
 import com.ops.app.courseregistration.course.repository.CourseRepository;
 import com.ops.app.courseregistration.enrollment.repository.EnrollmentRepository;
+import com.ops.app.courseregistration.enrollment.service.EnrollmentPeriodValidator;
 import com.ops.app.courseregistration.enrollment.service.EnrollmentService;
 import com.ops.app.courseregistration.global.exception.BusinessException;
 import com.ops.app.courseregistration.global.exception.ErrorCode;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -45,6 +47,18 @@ class EnrollmentConcurrencyTest {
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
     }
+
+    /**
+     * EnrollmentPeriodValidator 를 Mock 으로 대체한다.
+     *
+     * EnrollmentService.enroll() 첫 줄에서 periodValidator.validate() 를 호출하는데,
+     * 실제 구현은 10:00~10:30 / 14:00~14:30 / 16:00~16:30 시간대 외에는
+     * ENROLLMENT_NOT_OPEN 또는 SERVER_CLOSED 예외를 던진다.
+     * 동시성 테스트는 시간과 무관하게 항상 실행되어야 하므로,
+     * Mockito 기본 동작(void 메서드 → 아무것도 하지 않음)을 이용해 시간 제약을 우회한다.
+     */
+    @MockBean
+    EnrollmentPeriodValidator periodValidator;
 
     @Autowired EnrollmentService enrollmentService;
     @Autowired StudentRepository studentRepository;
@@ -147,12 +161,16 @@ class EnrollmentConcurrencyTest {
         System.out.println();
 
         System.out.println("[성공/실패]");
-        System.out.printf("  %s: %4d%n",   padLabel("성공",               LW), m.successCount);
-        System.out.printf("  %s: %4d%n",   padLabel("실패 — COURSE_FULL", LW),
+        System.out.printf("  %s: %4d%n",   padLabel("성공",                    LW), m.successCount);
+        System.out.printf("  %s: %4d%n",   padLabel("실패 — COURSE_FULL",      LW),
                 m.failureByErrorCode.getOrDefault(ErrorCode.COURSE_FULL, 0));
-        System.out.printf("  %s: %4d%n",   padLabel("실패 — DUPLICATE",   LW),
+        System.out.printf("  %s: %4d%n",   padLabel("실패 — DUPLICATE",        LW),
                 m.failureByErrorCode.getOrDefault(ErrorCode.DUPLICATE_ENROLLMENT, 0));
-        System.out.printf("  %s: %4d%n",   padLabel("예상 외 예외",        LW), m.unexpectedExceptionCount);
+        System.out.printf("  %s: %4d%n",   padLabel("실패 — NOT_OPEN",         LW),
+                m.failureByErrorCode.getOrDefault(ErrorCode.ENROLLMENT_NOT_OPEN, 0));
+        System.out.printf("  %s: %4d%n",   padLabel("실패 — SERVER_CLOSED",    LW),
+                m.failureByErrorCode.getOrDefault(ErrorCode.SERVER_CLOSED, 0));
+        System.out.printf("  %s: %4d%n",   padLabel("예상 외 예외",             LW), m.unexpectedExceptionCount);
         System.out.println();
 
         System.out.println("[DB 최종 상태]");
