@@ -1,8 +1,8 @@
 spring:
   datasource:
     hikari:
-      maximum-pool-size: 30  # DB 연결 통로 개수 100 -> 30 축소, 필요시 이후 상향 조정
-      minimum-idle: 7      # 유휴 상태일 때 유지할 최소 연결 수
+      maximum-pool-size: 30 # DB 연결 통로 개수 100 -> 30 축소, 필요시 이후 상향 조정
+      minimum-idle: 7 # 유휴 상태일 때 유지할 최소 연결 수
     url: jdbc:mysql://host.docker.internal:3306/course_registration
     username: app
     password: app
@@ -21,7 +21,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    locations: classpath:db/migration       # ← 스키마만. 시드는 포함하지 않음
+    locations: classpath:db/migration # ← 스키마만. 시드는 포함하지 않음
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
@@ -31,16 +31,19 @@ server:
   port: 8080
   tomcat:
     threads:
-      max: 200            # 동시에 처리할 수 있는 최대 스레드 수 (기본값 200)
-      min-spare: 20       # 최소한 유지할 스레드 수
+      max: 200 # 동시에 처리할 수 있는 최대 스레드 수 (기본값 200)
+      min-spare: 20 # 최소한 유지할 스레드 수
     max-connections: 5000 # 동시에 연결 가능한 최대 커넥션 수
-    accept-count: 1000     # 모든 스레드가 바쁠 때 대기할 수 있는 큐(대기열) 크기
+    accept-count: 1000 # 모든 스레드가 바쁠 때 대기할 수 있는 큐(대기열) 크기
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
+  metrics:
+    tags:
+      application: team1-app
   endpoint:
     health:
       probes:
