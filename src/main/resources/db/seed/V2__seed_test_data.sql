@@ -8,7 +8,6 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE students;
 TRUNCATE TABLE enrollments;
 TRUNCATE TABLE courses;
-TRUNCATE TABLE flyway_schema_history;
 
 -- 3. 외래 키 체크 다시 켜기
 SET FOREIGN_KEY_CHECKS = 1;
