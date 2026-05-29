@@ -17,7 +17,7 @@
 ## 🏗️ 아키텍처 개요
 
 ```
-사용자 요청.
+사용자 요청..
     │
     ▼
 Route 53 → ALB (Ingress Controller)
