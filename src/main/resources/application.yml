@@ -37,18 +37,24 @@ server:
     accept-count: 1000 # 모든 스레드가 바쁠 때 대기할 수 있는 큐(대기열) 크기
 
 management:
+  server:
+    port: 8081
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
-  metrics:
-    tags:
-      application: team1-app
   endpoint:
     health:
       probes:
         enabled: true
       show-details: when_authorized
+  metrics:
+    distribution: # ★ 추가
+      percentiles-histogram:
+        http.server.requests: true # http p95 → 대시보드 KPI + SlowResponseTime 알림이 비로소 동작
+        enrollment.duration: true # 신청 처리 p95 패널 쓸 거면 유지, 아니면 이 줄만 삭제
+    tags:
+      application: team1-app
 
 jwt:
   secret: ${JWT_SECRET:dev-only-secret-key-at-least-256-bits-long-please-change-in-production-environment}
