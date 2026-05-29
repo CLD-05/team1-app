@@ -1,5 +1,6 @@
 package com.ops.app.courseregistration.auth.jwt;
 
+import com.ops.app.courseregistration.global.metrics.ActiveStudentTracker;
 import com.ops.app.courseregistration.security.StudentPrincipal;
 import com.ops.app.courseregistration.student.repository.StudentRepository;
 import io.jsonwebtoken.JwtException;
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final JwtCookieUtil jwtCookieUtil;
     private final StudentRepository studentRepository;
+    private final ActiveStudentTracker activeStudentTracker;   // ★ 추가
 
     @Override
     protected void doFilterInternal(
@@ -50,6 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);
+
+            // ★ 인증 통과한 요청 → 활성 학생 지표 갱신 (active_students gauge)
+            activeStudentTracker.touch(studentId);
         } catch (JwtException e) {
             log.debug("Invalid JWT token: {}", e.getMessage());
             SecurityContextHolder.clearContext();

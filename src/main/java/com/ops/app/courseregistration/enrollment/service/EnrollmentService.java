@@ -8,6 +8,8 @@ import com.ops.app.courseregistration.global.exception.BusinessException;
 import com.ops.app.courseregistration.global.exception.ErrorCode;
 import com.ops.app.courseregistration.student.entity.Student;
 import com.ops.app.courseregistration.student.repository.StudentRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -23,9 +25,10 @@ public class EnrollmentService {
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
     private final EnrollmentPeriodValidator periodValidator;
+    private final MeterRegistry meterRegistry;
 
 
-     // 내 수강 내역 조회
+    // 내 수강 내역 조회
     @Transactional(readOnly = true)
     public List<Enrollment> getMyEnrollments(Long studentId) {
         return enrollmentRepository.findByStudentIdWithCourse(studentId);
@@ -47,68 +50,79 @@ public class EnrollmentService {
      * Step 1. UPDATE courses SET current_enrollment+1 WHERE current_enrollment < capacity
      *         → 0 rows affected : 정원 초과 → COURSE_FULL (롤백)
      *         → 1 rows affected : 자리 확보, 다음 단계 진행
-     *
      * Step 2. INSERT enrollments
      *         → UNIQUE 위반 : 중복 신청 → DUPLICATE_ENROLLMENT (롤백 → Step1 UPDATE도 취소)
      *         → 성공 : COMMIT
      *
-     * [동시성 처리]
-     * InnoDB row-level lock이 Step1 UPDATE를 직렬화함
-     * A, B가 동시에 마지막 1자리에 신청하면 한 명만 UPDATE 성공, 나머지는 0 rows affected → COURSE_FULL
+     * [동시성] InnoDB row-level lock이 Step1 UPDATE를 직렬화.
+     *
+     * [도메인 메트릭]
+     * enrollment.attempts{result}                    : 결과별 시도 횟수
+     * enrollment.attempts.by_course{course_id,course_name} : 강의별 시도 횟수 (동시신청 Top-N용)
+     * enrollment.duration{result}                    : 결과별 처리 시간 (p95는 percentiles-histogram 활성화 시)
+     * 실패는 모두 BusinessException(ErrorCode)이므로 ErrorCode 이름을 result 라벨로 사용.
+     * 메트릭은 in-memory라 롤백과 무관하며, 예외는 그대로 재던져 롤백 의미를 유지.
      */
     @Transactional
     public void enroll(Long studentId, Long courseId) {
-        periodValidator.validate();
-
-        // 강의 존재 여부 확인 — 없으면 COURSE_NOT_FOUND
-        courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
-
-        // Step 1. 정원 체크 + 카운터 원자적 증가
-        int updated = courseRepository.incrementEnrollmentCount(courseId);
-        if (updated == 0) {
-            throw new BusinessException(ErrorCode.COURSE_FULL);
-        }
-
-        // Step 2. 프록시 참조로 불필요한 SELECT 없이 INSERT
-        Student student = studentRepository.getReferenceById(studentId);
-        Course course   = courseRepository.getReferenceById(courseId);
-
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String result = "success";
+        String courseName = "unknown";   // 메트릭 라벨용 (존재하지 않는 강의/시간외 거절 시 unknown 유지)
         try {
-            enrollmentRepository.saveAndFlush(new Enrollment(student, course));
-        } catch (DataIntegrityViolationException e) {
-            // UNIQUE 위반 (student_id + course_id 중복) → 트랜잭션 롤백
-            // → Step1의 current_enrollment+1도 함께 취소됨
-            throw new BusinessException(ErrorCode.DUPLICATE_ENROLLMENT);
+            periodValidator.validate();
+
+            // 강의 존재 여부 확인 — 없으면 COURSE_NOT_FOUND. 여기서 이름도 확보.
+            Course found = courseRepository.findById(courseId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+            courseName = found.getCourseName();
+
+            // Step 1. 정원 체크 + 카운터 원자적 증가
+            int updated = courseRepository.incrementEnrollmentCount(courseId);
+            if (updated == 0) {
+                throw new BusinessException(ErrorCode.COURSE_FULL);
+            }
+
+            // Step 2. 프록시 참조로 불필요한 SELECT 없이 INSERT
+            Student student = studentRepository.getReferenceById(studentId);
+            Course course   = courseRepository.getReferenceById(courseId);
+
+            try {
+                enrollmentRepository.saveAndFlush(new Enrollment(student, course));
+            } catch (DataIntegrityViolationException e) {
+                throw new BusinessException(ErrorCode.DUPLICATE_ENROLLMENT);
+            }
+        } catch (BusinessException e) {
+            result = e.getErrorCode().name().toLowerCase();
+            throw e;
+        } catch (RuntimeException e) {
+            result = "error";
+            throw e;
+        } finally {
+            meterRegistry.counter("enrollment.attempts", "result", result).increment();
+            meterRegistry.counter("enrollment.attempts.by_course",
+                    "course_id", String.valueOf(courseId),
+                    "course_name", courseName).increment();
+            sample.stop(meterRegistry.timer("enrollment.duration", "result", result));
         }
     }
 
     /**
      * 수강 취소
-     *
-     * [트랜잭션 흐름]
-     * Step 1. enrollment_id AND student_id로 조회 → 소유자 검증 + 존재 확인 동시 처리
-     *         → 없으면 ENROLLMENT_NOT_FOUND (존재하지 않거나 다른 학생 것, 구분하지 않음)
-     *
-     * Step 2. DELETE enrollments
-     *
-     * Step 3. UPDATE courses SET current_enrollment-1 WHERE current_enrollment > 0
-     *         → 음수 방어 조건 포함
+     * Step 1. enrollment_id + student_id 조회 (소유자 검증 + 존재 확인) → 없으면 ENROLLMENT_NOT_FOUND
+     * Step 2. DELETE → flush
+     * Step 3. UPDATE courses SET current_enrollment-1 WHERE current_enrollment > 0 (음수 방어)
      */
     @Transactional
     public void cancel(Long enrollmentId, Long studentId) {
-        // Step 1. 소유자 검증 — 본인 것이 아니면 404
         Enrollment enrollment = enrollmentRepository
                 .findByEnrollmentIdAndStudentStudentId(enrollmentId, studentId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENROLLMENT_NOT_FOUND));
 
         Long courseId = enrollment.getCourse().getCourseId();
 
-        // Step 2. DELETE — flush로 즉시 반영 후 Step3 실행
         enrollmentRepository.delete(enrollment);
         enrollmentRepository.flush();
 
-        // Step 3. 카운터 감소 (current_enrollment > 0 조건으로 음수 방어)
         courseRepository.decrementEnrollmentCount(courseId);
     }
 }
