@@ -1,19 +1,23 @@
 package com.ops.app.courseregistration.enrollment.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.ops.app.courseregistration.course.entity.Course;
 import com.ops.app.courseregistration.course.repository.CourseRepository;
+import com.ops.app.courseregistration.enrollment.dto.EnrollmentResponseDTO;
 import com.ops.app.courseregistration.enrollment.entity.Enrollment;
 import com.ops.app.courseregistration.enrollment.repository.EnrollmentRepository;
 import com.ops.app.courseregistration.global.exception.BusinessException;
 import com.ops.app.courseregistration.global.exception.ErrorCode;
 import com.ops.app.courseregistration.student.entity.Student;
 import com.ops.app.courseregistration.student.repository.StudentRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,17 +31,19 @@ public class EnrollmentService {
 
      // 내 수강 내역 조회
     @Transactional(readOnly = true)
-    public List<Enrollment> getMyEnrollments(Long studentId) {
-        return enrollmentRepository.findByStudentIdWithCourse(studentId);
-    }
-
-
-    // 총 신청 학점 계산
-    @Transactional(readOnly = true)
-    public int getTotalCredits(Long studentId) {
-        return getMyEnrollments(studentId).stream()
-                .mapToInt(e -> e.getCourse().getCredits())
-                .sum();
+    public List<EnrollmentResponseDTO> getMyEnrollments(Long studentId) {
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentIdWithCourse(studentId);
+        
+        // 엔티티를 DTO로 변환 (Stream API 사용)
+        return enrollments.stream()
+            .map(e -> new EnrollmentResponseDTO(
+                e.getEnrollmentId(),
+                e.getCourse().getCourseCode(),
+                e.getCourse().getCourseName(),
+                e.getCourse().getCredits(),
+                e.getCreatedAt()
+            ))
+            .collect(Collectors.toList());
     }
 
     /**
@@ -110,5 +116,16 @@ public class EnrollmentService {
 
         // Step 3. 카운터 감소 (current_enrollment > 0 조건으로 음수 방어)
         courseRepository.decrementEnrollmentCount(courseId);
+    }
+
+    @Transactional(readOnly = true)
+    public int getTotalCredits(Long studentId) {
+        // 1. 해당 학생의 수강 내역을 가져옵니다.
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentIdWithCourse(studentId);
+        
+        // 2. Stream을 사용하여 각 강의의 학점(credits)을 모두 더합니다.
+        return enrollments.stream()
+                .mapToInt(e -> e.getCourse().getCredits())
+                .sum();
     }
 }

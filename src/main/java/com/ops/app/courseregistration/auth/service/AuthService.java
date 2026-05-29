@@ -28,4 +28,19 @@ public class AuthService {
 
         return jwtUtil.generateToken(student.getStudentId());
     }
+    
+    public String getName(String email) {
+        // 1. 이메일로 학생 엔티티를 DB에서 조회합니다.
+        Student student = studentRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_NOT_FOUND));
+        
+        // 2. 엔티티에서 이름을 반환합니다.
+        return student.getName();
+    }
+    
+    public String getNameById(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_NOT_FOUND));
+        return student.getName();
+    }
 }

@@ -1,5 +1,6 @@
 package com.ops.app.courseregistration.enrollment.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ops.app.courseregistration.course.entity.Course;
 import com.ops.app.courseregistration.student.entity.Student;
 import jakarta.persistence.*;
@@ -33,6 +34,7 @@ public class Enrollment {
     // 신청된 강의
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
+    @JsonIgnore
     private Course course;
 
     @Column(name = "created_at", nullable = false, updatable = false)

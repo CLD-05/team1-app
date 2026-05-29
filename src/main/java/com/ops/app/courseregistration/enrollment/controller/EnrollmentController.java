@@ -1,75 +1,65 @@
 package com.ops.app.courseregistration.enrollment.controller;
 
-import com.ops.app.courseregistration.enrollment.entity.Enrollment;
-import com.ops.app.courseregistration.enrollment.service.EnrollmentService;
-import com.ops.app.courseregistration.global.exception.BusinessException;
-import com.ops.app.courseregistration.security.StudentPrincipal;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
 import java.util.List;
+import java.util.Map;
 
-@Controller
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ops.app.courseregistration.enrollment.dto.EnrollmentPageResponseDTO;
+import com.ops.app.courseregistration.enrollment.dto.EnrollmentResponseDTO;
+import com.ops.app.courseregistration.enrollment.service.EnrollmentService;
+import com.ops.app.courseregistration.security.StudentPrincipal;
+
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/enrollments")
 @RequiredArgsConstructor
 public class EnrollmentController {
 
     private final EnrollmentService enrollmentService;
 
-    /**
-     * GET /enrollments — 내 수강 내역 페이지
-     */
-    @GetMapping("/enrollments")
-    public String myEnrollments(@AuthenticationPrincipal StudentPrincipal principal,
-                                Model model) {
+    // 1. 내 수강 내역 조회 (GET)
+    @GetMapping
+    public ResponseEntity<EnrollmentPageResponseDTO> getMyEnrollments(@AuthenticationPrincipal StudentPrincipal principal) {
         Long studentId = principal.getStudentId();
-
-        List<Enrollment> enrollments = enrollmentService.getMyEnrollments(studentId);
-
-        model.addAttribute("enrollments", enrollments);
-        model.addAttribute("totalCredits", enrollmentService.getTotalCredits(studentId));
-        model.addAttribute("studentName", principal.getName());
-
-        return "enrollments";
+        
+        // 서비스에서 DTO 리스트를 받아옴
+        List<EnrollmentResponseDTO> enrollments = enrollmentService.getMyEnrollments(studentId);
+        int totalCredits = enrollmentService.getTotalCredits(studentId);
+        
+        // 전체 데이터를 담을 DTO 생성
+        EnrollmentPageResponseDTO response = new EnrollmentPageResponseDTO(
+            principal.getName(),
+            totalCredits, // 서비스에 이 메서드가 있어야 함
+            enrollments
+        );
+        
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * POST /enrollments — 수강신청
-     * - 처리 후 redirect → 브라우저 새로고침 중복 신청 방지
-     */
-    @PostMapping("/enrollments")
-    public String enroll(@RequestParam Long courseId,
-                         @AuthenticationPrincipal StudentPrincipal principal,
-                         RedirectAttributes redirectAttributes) {
-        try {
-            enrollmentService.enroll(principal.getStudentId(), courseId);
-            redirectAttributes.addFlashAttribute("successMessage", "수강신청이 완료되었습니다.");
-        } catch (BusinessException e) {
-            // COURSE_FULL, DUPLICATE_ENROLLMENT, COURSE_NOT_FOUND 모두 여기서 처리
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
-        return "redirect:/enrollments";
+    // 2. 수강 신청 (POST)
+    @PostMapping
+    public ResponseEntity<?> enroll(@RequestBody Map<String, Long> request, 
+                                    @AuthenticationPrincipal StudentPrincipal principal) {
+        Long courseId = request.get("courseId");
+        enrollmentService.enroll(principal.getStudentId(), courseId);
+        return ResponseEntity.ok("수강신청이 완료되었습니다.");
     }
 
-    /**
-     * POST /enrollments/{enrollmentId}/cancel — 수강 취소
-     * - 처리 후 redirect
-     * - 본인 것이 아니면 Service에서 ENROLLMENT_NOT_FOUND 던짐
-     */
-    @PostMapping("/enrollments/{enrollmentId}/cancel")
-    public String cancel(@PathVariable Long enrollmentId,
-                         @AuthenticationPrincipal StudentPrincipal principal,
-                         RedirectAttributes redirectAttributes) {
-        try {
-            enrollmentService.cancel(enrollmentId, principal.getStudentId());
-            redirectAttributes.addFlashAttribute("successMessage", "수강이 취소되었습니다.");
-        } catch (BusinessException e) {
-            // ENROLLMENT_NOT_FOUND 처리
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
-        return "redirect:/enrollments";
+    // 3. 수강 취소 (DELETE)
+    @DeleteMapping("/{enrollmentId}")
+    public ResponseEntity<?> cancel(@PathVariable Long enrollmentId, 
+                                    @AuthenticationPrincipal StudentPrincipal principal) {
+        enrollmentService.cancel(enrollmentId, principal.getStudentId());
+        return ResponseEntity.ok("수강이 취소되었습니다.");
     }
 }

@@ -12,9 +12,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     // 내 수강 내역 조회 — course를 JOIN FETCH로 한 번에 가져와 N+1 방지
     // WHERE student_id = ? ORDER BY created_at DESC
-    @Query("SELECT e FROM Enrollment e JOIN FETCH e.course " +
-            "WHERE e.student.studentId = :studentId " +
-            "ORDER BY e.createdAt DESC")
+	@Query("SELECT e FROM Enrollment e JOIN FETCH e.course WHERE e.student.id = :studentId")
     List<Enrollment> findByStudentIdWithCourse(@Param("studentId") Long studentId);
 
     // 수강 취소 시 소유자 검증용 — enrollment_id AND student_id 동시 조건
@@ -22,4 +20,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Optional<Enrollment> findByEnrollmentIdAndStudentStudentId(Long enrollmentId, Long studentId);
 
     boolean existsByStudentStudentIdAndCourseCourseId(Long studentId, Long courseId);
+    
+    
 }

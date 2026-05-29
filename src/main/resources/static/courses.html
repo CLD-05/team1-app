@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>강의 검색</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/courses.css">
+</head>
+<body>
+<header>
+    <div class="header-left">
+        <div class="logo-dot">🎓</div>
+        <span class="logo-text">수강신청</span>
+    </div>
+    <div class="header-right">
+        <a href="/courses.html" class="nav-link active">강의 검색</a>
+        <a href="#" id="myEnrollmentLink" class="nav-link">내 수강 내역</a>
+        <div class="student-badge">
+            <div class="avatar" id="student-initial"></div>
+            <span id="student-name"></span>
+        </div>
+        <button type="button" class="logout-btn" onclick="logout()">로그아웃</button>
+    </div>
+</header>
+
+<main>
+    <div class="page-header">
+        <h1>강의 검색</h1>
+        <p>강의명으로 검색하고 수강신청하세요</p>
+    </div>
+
+    <div class="search-section">
+        <div style="display:flex;gap:0.75rem;width:100%;align-items:center;">
+            <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="search-keyword" placeholder="강의명 검색 (최소 2자)">
+            </div>
+            <button type="button" class="search-btn" onclick="fetchCourses()">검색</button>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <div class="table-meta" id="table-meta">총 0개 강의</div>
+        <table>
+            <thead>
+            <tr>
+                <th>강의코드</th><th>강의명</th><th>구분</th><th>학점</th><th>정원 현황</th><th>신청</th>
+            </tr>
+            </thead>
+            <tbody id="course-table-body">
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script src="/js/courses.js"></script>
+</body>
+</html>

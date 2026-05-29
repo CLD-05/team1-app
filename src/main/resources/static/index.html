@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수강신청 시스템 — 로그인</title>
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+    <div class="left-panel">
+        <div class="brand">
+            <div class="brand-icon">🎓</div>
+            <span class="brand-name">수강신청 시스템</span>
+        </div>
+        <h1 class="hero-title">멋사 대학교<br>수강신청</h1>
+        <p class="hero-sub">대규모 트래픽에도 안정적인 EKS 기반 인프라로<br>수강신청을 지원합니다.</p>
+        <div class="features">
+            <div class="feature-item"><span class="feature-dot"></span>실시간 정원 확인</div>
+            <div class="feature-item"><span class="feature-dot"></span>동시 신청 충돌 방지</div>
+            <div class="feature-item"><span class="feature-dot"></span>수강 내역 즉시 조회</div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="login-box">
+            <div class="login-header">
+                <h2>로그인</h2>
+                <p>이메일과 비밀번호를 입력해주세요</p>
+            </div>
+            <div id="error-box" class="error-box" style="display:none;"></div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">이메일</label>
+                    <input type="email" id="email" name="email" placeholder="student1@test.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" name="password" placeholder="비밀번호 입력" required>
+                </div>
+                <button type="submit" class="submit-btn">로그인</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/js/login.js"></script>
+</body>
+</html>

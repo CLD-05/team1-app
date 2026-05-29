@@ -1,12 +1,3 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수강신청 시스템 — 로그인</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
             --green-50:  #f0faf4;
@@ -199,43 +190,3 @@
             .left-panel { display: none; }
             .right-panel { padding: 2rem 1.5rem; }
         }
-    </style>
-</head>
-<body>
-<div class="left-panel">
-    <div class="brand">
-        <div class="brand-icon">🎓</div>
-        <span class="brand-name">수강신청 시스템</span>
-    </div>
-    <h1 class="hero-title">멋사 대학교<br>수강신청</h1>
-    <p class="hero-sub">대규모 트래픽에도 안정적인 EKS 기반 인프라로<br>수강신청을 지원합니다.</p>
-    <div class="features">
-        <div class="feature-item"><span class="feature-dot"></span>실시간 정원 확인</div>
-        <div class="feature-item"><span class="feature-dot"></span>동시 신청 충돌 방지</div>
-        <div class="feature-item"><span class="feature-dot"></span>수강 내역 즉시 조회</div>
-    </div>
-</div>
-<div class="right-panel">
-    <div class="login-box">
-        <div class="login-header">
-            <h2>로그인</h2>
-            <p>이메일과 비밀번호를 입력해주세요</p>
-        </div>
-        <div th:if="${error}" class="error-box">⚠ <span th:text="${error}"></span></div>
-        <form th:action="@{/login}" method="post">
-            <div class="form-group">
-                <label for="email">이메일</label>
-                <input type="email" id="email" name="email" placeholder="student1@test.com" required>
-            </div>
-            <div class="form-group">
-                <label for="password">비밀번호</label>
-                <input type="password" id="password" name="password" placeholder="비밀번호 입력" required>
-            </div>
-            <button type="submit" class="submit-btn">로그인</button>
-        </form>
-        <div class="divider">안내</div>
-        <div class="info-note">수강신청 기간에만 로그인이 가능합니다</div>
-    </div>
-</div>
-</body>
-</html>

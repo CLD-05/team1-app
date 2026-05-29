@@ -14,8 +14,8 @@ spring:
     show-sql: true
   flyway:
     locations: classpath:db/migration,classpath:db/seed    # ← 시드까지 포함 (local 전용)
-  thymeleaf:
-    cache: false
+#  thymeleaf:
+#    cache: false
 
 server:
   tomcat:
@@ -29,3 +29,4 @@ logging:
   level:
     root: WARN
     com.ops.app: INFO
+    org.springframework.security: DEBUG

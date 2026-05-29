@@ -12,14 +12,14 @@ public class EnrollmentPeriodValidator {
 
     // 수강신청 가능 시간대
     private static final LocalTime[][] PERIODS = {
-            { LocalTime.of(10, 0),  LocalTime.of(10, 30) },
+            { LocalTime.of(00, 0),  LocalTime.of(10, 30) },
             { LocalTime.of(14, 0),  LocalTime.of(14, 30) },
-            { LocalTime.of(16, 0),  LocalTime.of(16, 30) }
+            { LocalTime.of(16, 0),  LocalTime.of(23, 59) }
     };
 
     // 서버 운영 시간
-    private static final LocalTime SERVER_OPEN  = LocalTime.of(9, 30);
-    private static final LocalTime SERVER_CLOSE = LocalTime.of(16, 30);
+    private static final LocalTime SERVER_OPEN  = LocalTime.of(0, 00);
+    private static final LocalTime SERVER_CLOSE = LocalTime.of(23, 59);
 
     public void validate() {
         LocalTime now = LocalTime.now();

@@ -3,9 +3,9 @@ spring:
     hikari:
       maximum-pool-size: 100 # DB 연결 통로 개수 (기본 10에서 100으로 상향)
       minimum-idle: 10      # 유휴 상태일 때 유지할 최소 연결 수
-    url: jdbc:mysql://host.docker.internal:3306/course_registration
-    username: app
-    password: app
+    url: jdbc:mysql://my-course-db.cd8oc46e2qt9.ap-northeast-2.rds.amazonaws.com:3306/course_registration
+    username: admin
+    password: masterpassword
     driver-class-name: com.mysql.cj.jdbc.Driver
   application:
     name: team1-app
@@ -22,10 +22,10 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration       # ← 스키마만. 시드는 포함하지 않음
-  thymeleaf:
-    prefix: classpath:/templates/
-    suffix: .html
-    encoding: UTF-8
+#  thymeleaf:
+#    prefix: classpath:/templates/
+#    suffix: .html
+#    encoding: UTF-8
 
 server:
   port: 8080
