@@ -12,9 +12,7 @@ public class EnrollmentPeriodValidator {
 
     // 수강신청 가능 시간대
     private static final LocalTime[][] PERIODS = {
-            { LocalTime.of(00, 0),  LocalTime.of(10, 30) },
-            { LocalTime.of(14, 0),  LocalTime.of(14, 30) },
-            { LocalTime.of(16, 0),  LocalTime.of(23, 59) }
+            { LocalTime.of(00, 0),  LocalTime.of(23, 59) }
     };
 
     // 서버 운영 시간
