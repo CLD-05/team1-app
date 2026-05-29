@@ -6,9 +6,9 @@ on:
       - develop
     # 백엔드 소스코드나 메이븐 설정이 바뀔 때만 낭비 없이 돌도록 경로 지정
     paths:
-      - 'src/**'
-      - 'pom.xml'
-      - 'mvnw'
+      - "src/**"
+      - "pom.xml"
+      - "mvnw"
 
 jobs:
   test:
@@ -24,9 +24,9 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
 
       # 3. 리눅스 환경(Ubuntu)에서 mvnw를 실행할 수 있도록 권한 부여
       - name: Grant execute permission for mvnw
