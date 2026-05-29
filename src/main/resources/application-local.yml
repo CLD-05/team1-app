@@ -1,9 +1,9 @@
 spring:
   datasource:
     hikari:
-      maximum-pool-size: 100 # DB 연결 통로 개수 (기본 10에서 100으로 상향)
-      minimum-idle: 10      # 유휴 상태일 때 유지할 최소 연결 수
-    url: jdbc:mysql://localhost:3306/course_registration?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      maximum-pool-size: 30 # DB 연결 통로 개수 100 -> 30 축소, 필요시 이후 상향 조정
+      minimum-idle: 7      # 유휴 상태일 때 유지할 최소 연결 수
+    url: jdbc:mysql://localhost:3307/course_registration?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: app
     password: app
     driver-class-name: com.mysql.cj.jdbc.Driver
