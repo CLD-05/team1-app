@@ -59,17 +59,31 @@ jobs:
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # 8. Kustomize 태그 자동 업데이트 및 Config 저장소 Push
-      - name: Update Kustomize Image Tag & Push to Config Repo
+      # 8. Kustomize 태그 자동 업데이트 및 Config 저장소 PR 자동 머지
+      - name: Update Kustomize Image Tag & Auto-merge PR to Config Repo
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          git config --global user.name "Leeyunbum"
-          git config --global user.email "yunbum@example.com"
+          git config --global user.name "team1-ci-bot"
+          git config --global user.email "ci-bot@users.noreply.github.com"
 
           git clone https://${{ secrets.GH_PAT }}@github.com/CLD-05/team1-config.git config-repo
-          cd config-repo/apps/team1-app/overlays/dev
+          cd config-repo
 
-          kustomize edit set image nginx:1.27=495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/team1-app:${{ github.sha }}
+          ( cd apps/team1-app/overlays/dev && \
+            kustomize edit set image \
+              495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/team1-app=495599735720.dkr.ecr.ap-northeast-2.amazonaws.com/team1-app:${{ github.sha }} )
 
-          git add kustomization.yaml
-          git commit -m "deploy: 백엔드 dev 환경 최신 빌드 이미지 태그 반영 (${{ github.sha }})"
-          git push origin main
+          if git diff --quiet; then
+            echo "이미지 태그 변경 없음 — 건너뜀"; exit 0
+          fi
+
+          BRANCH="ci/bump-dev-${{ github.sha }}"
+          git checkout -b "$BRANCH"
+          git commit -am "deploy(dev): team1-app 이미지 ${{ github.sha }} 반영"
+          git push origin "$BRANCH"
+
+          PR_URL=$(gh pr create --base main --head "$BRANCH" \
+            --title "deploy(dev): team1-app ${{ github.sha }}" \
+            --body "CI 자동 생성 — develop 빌드 이미지 태그 반영. merge 시 ArgoCD가 dev 배포.")
+          gh pr merge "$PR_URL" --squash --auto --delete-branch
