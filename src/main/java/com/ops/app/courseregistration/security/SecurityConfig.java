@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
+                        .requestMatchers("/login", "api/enrollments", "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 )
