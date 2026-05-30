@@ -86,4 +86,5 @@ jobs:
           PR_URL=$(gh pr create --base main --head "$BRANCH" \
             --title "deploy(dev): team1-app ${{ github.sha }}" \
             --body "CI 자동 생성 — develop 빌드 이미지 태그 반영. merge 시 ArgoCD가 dev 배포.")
-          gh pr merge "$PR_URL" --squash --auto --delete-branch
+          gh pr merge "$PR_URL" --squash --delete-branch --auto \
+            || gh pr merge "$PR_URL" --squash --delete-branch
