@@ -1,40 +1,9 @@
 -- 학습 환경 전용 시드 데이터. 운영 DB에는 적용 금지.
 -- 비밀번호: 모든 계정 'password' (BCrypt strength 10 해시)
 
--- 1. 외래 키 체크 끄기
-SET FOREIGN_KEY_CHECKS = 0;
-
--- 2. 모든 테이블 데이터 비우기 (students, enrollments 등)
-TRUNCATE TABLE students;
-TRUNCATE TABLE enrollments;
-TRUNCATE TABLE courses;
-
--- 3. 외래 키 체크 다시 켜기
-SET FOREIGN_KEY_CHECKS = 1;
-
--- 4. 프로시저 생성 (다시 한번 확실하게!)
-DELIMITER $$
-DROP PROCEDURE IF EXISTS GenerateStudents$$
-CREATE PROCEDURE GenerateStudents()
-BEGIN
-    DECLARE i INT DEFAULT 1;
-    WHILE i <= 3000 DO
-        INSERT INTO students (student_number, name, grade, email, password)
-        VALUES (
-            CONCAT('2023', LPAD(i, 4, '0')), 
-            CONCAT('학생', LPAD(i, 4, '0')), 
-            (i % 4) + 1, 
-            CONCAT('student', i, '@test.com'), 
-            '$2a$10$QYt6EqWzVmUJ577nwFsK.O6nHwj1774wZbsiYfAM6ER69SZ/NOyTK'
-        );
-        SET i = i + 1;
-    END WHILE;
-END$$
-DELIMITER ;
-
--- 5. 프로시저 호출
-CALL GenerateStudents();
-    
+INSERT INTO students (student_number, name, grade, email, password) VALUES
+    ('20231001', '김학생', 3, 'student1@test.com', '$2a$10$QYt6EqWzVmUJ577nwFsK.O6nHwj1774wZbsiYfAM6ER69SZ/NOyTK'),
+    ('20231002', '이학생', 2, 'student2@test.com', '$2a$10$QYt6EqWzVmUJ577nwFsK.O6nHwj1774wZbsiYfAM6ER69SZ/NOyTK');
 
 INSERT INTO courses (course_code, course_name, course_type, credits, capacity, current_enrollment) VALUES
     -- 전공필수 (20개)
