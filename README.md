@@ -1,7 +1,48 @@
-# 대규모 트래픽 방어를 위한 EKS 기반 수강신청 인프라 및 GitOps 파이프라인 구축
+# 대규모 트래픽 대응을 위한 EKS 기반 수강신청 시스템 구축
 
-> Spring Boot 기반 수강신청 서비스를 EKS 위에 배포하고, GitOps 파이프라인으로 자동화한 클라우드 네이티브 프로젝트
->
+> Terraform 기반 인프라 자동화(IaC), GitHub Actions·ArgoCD 기반 GitOps 배포 파이프라인, Kubernetes 오토스케일링(KEDA/HPA)을 적용하여 안정적인 수강신청 서비스를 구축하고 k6 부하 테스트를 통해 성능과 가용성을 검증한 프로젝트
+
+<br>
+
+## 🎯 프로젝트 목표
+
+- 수강신청 트래픽 집중 상황 대응
+- Kubernetes 기반 자동 확장
+- GitOps 기반 무중단 배포
+- IaC 기반 인프라 자동 구축
+- 부하 테스트를 통한 성능 검증
+
+<br>
+
+## 🌿 브랜치 전략 & PR 규칙
+### 💬 커밋 컨벤션
+
+| Prefix | 용도 |
+| --- | --- |
+| `feat` | 새로운 기능 추가 |
+| `fix` | 버그 및 에러 수정 |
+| `refactor` | 프로덕션 코드 리팩토링 (기능 변경 없음) |
+| `chore` | 빌드 업무 수정, 패키지 매니저 설정, 의존성 변경 |
+| `docs` | 문서 및 주석 수정 |
+
+### 🔍 PR(Pull Request) 가이드라인
+
+1. `feature/*` ──▶ `develop` 방향으로만 PR 생성
+2. PR 제목 형식: `[Prefix] 작업 내용` (예: `[feat] 강의 검색 API 구현`)
+3. PR 본문 필수 항목 (무엇을/왜/어떻게, 영향 범위, 테스트 결과)
+4. 인프라 변경 PR(`infra` 레포)은 `terraform plan` 결과 본문 첨부 필수
+5. 팀원 1인 이상 리뷰 후 approve ──▶ merge (approve 없이 merge 금지)
+
+### 📌 브랜치 구조 및 배포 책임
+### 브랜치 구조
+
+```
+main
+ └── develop
+      └── feature/이름/기능명     # 예: feature/yueun/subject_search
+```
+* `feature/*` ──▶ `develop` 방향으로만 PR 생성
+* CI는 App 레포, CD는 Config 레포로 책임 분리 (GitOps 표준)
 
 <br>
 
@@ -10,42 +51,101 @@
 | 구분 | URL |
 | --- | --- |
 | App (소스코드) | https://github.com/CLD-05/team1-app |
-| Config (매니페스트) | https://github.com/CLD-05/team1-config |
+| Config (GitOps 매니페스트) | https://github.com/CLD-05/team1-config |
+| Infra (Terraform IaC) | https://github.com/CLD-05/team1-infra |
 
 <br>
 
 ## 🏗️ 아키텍처 개요
 
 ```
-사용자 요청..
-    │
-    ▼
-Route 53 → ALB (Ingress Controller)
-    │
-    ▼
-EKS Cluster
- ├── Spring Boot Pod (수강신청 서비스)
- └── ArgoCD (GitOps CD)
-    │
-    ▼
-RDS MySQL (수강신청 DB)
+[ 외부 트래픽 분리 구조 (Traffic Flow) ]
 
-ECR (컨테이너 이미지 저장소)
-S3 + DynamoDB (Terraform Backend)
+사용자 요청 (User Request)
+    │
+    ├──▶ [FE] Route 53 ──▶ CloudFront (CDN) ──▶ S3 Bucket (정적 호스팅)
+    │
+    └──▶ [BE] Route 53 ──▶ ALB (AWS Load Balancer Controller)
+                                   │
+                                   ▼
+                           AWS EKS Cluster
+                           ├── Ingress ──▶ Spring Boot Pods (수강신청 서비스)
+                           └── ArgoCD (GitOps CD) ◀── [team1-config 레포]
+
+
+[ 데이터베이스 및 인프라 관리 (Data & IaC Backend) ]
+
+Spring Boot Pods ──▶ AWS RDS (MySQL DB)
+GitHub Actions   ──▶ AWS ECR (컨테이너 이미지 빌드/푸시)
+Terraform        ──▶ S3 + DynamoDB (원격 백엔드 및 Lock 관리)
+
+
+[ 검증 및 관측성 인프라 (Testing & Observability) ]
+
+k6 (부하 발생기) ──▶ ALB ──▶ Spring Boot Pods
+                                   │ (Metrics 수집)
+                                   ▼
+                       Prometheus & Grafana (대시보드 모니터링)
 ```
+## CI/CD 파이프라인
 
 **CI 흐름 (App 레포)**
 
 ```
-Push → GitHub Actions (OIDC) → Docker Build → ECR Push → Config 레포 image tag 갱신
+Developer Push / PR Merge 
+      ↓ 
+GitHub Actions 실행 
+      ↓ 
+AWS OIDC 인증 
+      ↓ 
+Spring Boot Build 
+      ↓ 
+Docker Image Build 
+      ↓ 
+Amazon ECR Push 
+      ↓ 
+Config Repository Image Tag 갱신
 ```
 
 **CD 흐름 (Config 레포)**
 
 ```
-Config 레포 변경 감지 → ArgoCD → EKS 자동 배포
+Config Repository 변경 
+      ↓ 
+ArgoCD 변경 감지 
+      ↓ 
+Manifest 동기화(Sync) 
+      ↓ 
+Amazon EKS 배포 
+      ↓ 
+Rolling Update 수행 
+      ↓ 
+신규 Pod 생성 
+      ↓ 
+Health Check 
+      ↓ 
+서비스 반영 완료
 ```
+**GitOps Workflow**
 
+```
+App Repository 
+     ↓ 
+GitHub Actions 
+     ↓ 
+AWS OIDC Role
+     ↓ 
+Amazon ECR 
+     ↓ 
+Config Repository 
+     ↓  
+ArgoCD 
+     ↓ 
+Amazon EKS 
+     ↓ 
+Running Pod
+
+```
 <br>
 
 ## 🛠️ 기술 스택
@@ -73,7 +173,9 @@ Config 레포 변경 감지 → ArgoCD → EKS 자동 배포
 | CI | GitHub Actions (OIDC) |
 | CD | ArgoCD |
 | Ingress | AWS ALB Controller + IRSA |
+| Auto Scaling | HPA, KEDA |
 | Monitoring | Prometheus, Grafana, CloudWatch, k6 |
+
 
 <br>
 
@@ -85,81 +187,47 @@ Config 레포 변경 감지 → ArgoCD → EKS 자동 배포
 src/
 ├── main/
 │   ├── java/com/ops/app/courseregistration/
-│   │   ├── auth/           # 로그인/로그아웃, JWT 발급
-│   │   ├── course/         # 강의 검색
-│   │   ├── enrollment/     # 수강신청/취소/조회
-│   │   ├── student/        # 학생 엔티티
-│   │   ├── security/       # JWT 필터, Security 설정
-│   │   └── global/         # 공통 예외 처리
+│   │   ├── auth/
+│   │   │   ├── controller/    # 로그인, 로그아웃 API
+│   │   │   ├── dto/           # 인증 요청/응답 DTO
+│   │   │   ├── jwt/           # JWT 생성 및 검증
+│   │   │   └── service/       # 인증 비즈니스 로직
+│   │   │
+│   │   ├── course/
+│   │   │   ├── controller/    # 강의 조회 API
+│   │   │   ├── dto/           # 강의 관련 DTO
+│   │   │   ├── entity/        # 강의 엔티티
+│   │   │   ├── repository/    # 강의 데이터 접근
+│   │   │   ├── service/       # 강의 비즈니스 로직
+│   │   │   └── metrics/       # 강의 조회 메트릭 수집
+│   │   │
+│   │   ├── enrollment/
+│   │   │   ├── controller/    # 수강신청 API
+│   │   │   ├── entity/        # 수강신청 엔티티
+│   │   │   ├── repository/    # 수강신청 데이터 접근
+│   │   │   └── service/       # 수강신청 비즈니스 로직
+│   │   │
+│   │   ├── student/
+│   │   │   ├── entity/        # 학생 엔티티
+│   │   │   └── repository/    # 학생 데이터 접근
+│   │   │
+│   │   ├── security/          # Spring Security 설정
+│   │   │
+│   │   └── global/
+│   │       ├── exception/     # 공통 예외 처리
+│   │       └── metrics/       # 공통 메트릭 수집
+│   │
 │   └── resources/
-│       ├── templates/      # Thymeleaf 템플릿
-│       ├── application.yml
-│       ├── application-local.yml
+│       ├── templates/         # Thymeleaf 템플릿
 │       └── db/
-│           ├── migration/  # Flyway DDL
-│           └── seed/       # 테스트 데이터
-Dockerfile                  # 멀티스테이지 빌드
-docker-compose.yml          # 로컬 개발용
+│           ├── migration/     # Flyway 마이그레이션
+│           └── seed/          # 초기 데이터
+│
+├── Dockerfile                 # 멀티 스테이지 Docker 빌드
+├── docker-compose.yml         # 로컬 개발 환경
+└── .github/workflows/         # GitHub Actions CI/CD
 ```
 
-### team1-config (Config 레포)
-
-<br>
-<br>
-
-## 🌿 브랜치 전략 & PR 규칙
-
-### 브랜치 구조
-
-```
-main
- └── develop
-      └── feature/이름/기능명     # 예: feature/yueun/subject_search
-```
-
-- `feature/*` → `develop` 방향으로만 PR 생성
-- CI는 App 레포, CD는 Config 레포 책임 분리 (GitOps 정석)
-
-### 커밋 컨벤션
-
-| prefix | 용도 |
-| --- | --- |
-| `feat` | 새 기능 추가 |
-| `fix` | 버그 수정 |
-| `refactor` | 코드 개선 |
-| `chore` | 설정, 의존성 변경 |
-| `docs` | 문서, 주석 |
-
-### PR 규칙
-
-1. `feature/*` → `develop` 방향으로만 PR 생성
-2. PR 제목 형식: `[feat] 강의 검색 API`
-3. PR 본문 필수 항목
-    - 무엇을 / 왜 / 어떻게
-    - 영향 범위
-    - 테스트 결과
-4. 인프라 변경 PR은 `terraform plan` 결과 본문 첨부 필수
-5. 팀원 1인 이상 리뷰 후 approve → merge
-6. approve 없이 merge 금지
-
-<br>
-
-## 📋 프로젝트 진행 흐름
-
-```
-주제 확정 (프로젝트1 연계)
-    → 레포 분리 설계 (App / Config)
-    → 역할 분담
-    → Spring Boot 컨테이너화 점검 + Dockerfile 멀티스테이지 정비
-    → Terraform 모듈 작성 (VPC / EKS / RDS / ECR / IAM)
-       + S3 + DynamoDB Backend 구성
-    → EKS 클러스터 생성 + ALB Controller / IRSA 설정
-    → k8s 매니페스트 작성 (Deployment / Service / Ingress / ConfigMap / Secret)
-    → GitHub Actions CI 구성 (OIDC → ECR Push → Config 레포 image tag 갱신)
-    → ArgoCD 설치 → Application 등록 → Config 레포 추적 시작
-    → 서비스 검증 + AWS 아키텍처 다이어그램 정리
-    → 산출물 정리 → 제출 → 발표
-```
 
 <br>
 
@@ -177,46 +245,55 @@ main
 
 <br>
 
-## 📋 환경 변수
 
-| 변수 | 설명 | 기본값 (local) |
-| --- | --- | --- |
-| `DB_URL` | MySQL 접속 URL | `jdbc:mysql://localhost:3306/course_registration` |
-| `DB_USERNAME` | DB 유저명 | `app` |
-| `DB_PASSWORD` | DB 비밀번호 | `app` |
-| `JWT_SECRET` | JWT 서명 키 | 로컬 개발용 임시값 |
+## 🔐 환경 변수
 
-> EKS 배포 시 k8s Secret으로 주입
+| 변수 | 설명 |
+|--------|--------|
+| `DB_URL` | AWS RDS(MySQL) 접속 URL |
+| `DB_USERNAME` | 데이터베이스 계정 |
+| `DB_PASSWORD` | 데이터베이스 비밀번호 |
+| `JWT_SECRET` | JWT 토큰 서명 키 |
+| `SPRING_PROFILES_ACTIVE` | 실행 환경(dev, prod) |
 
-# 🚀 Team1 백엔드 CI/CD 및 GitOps 배포 가이드
+### Secret 관리
 
-본 저장소의 `develop` 브랜치는 AWS ECR 및 EKS 클러스터와 자동화 파이프라인으로 연동되어 있습니다. 
-모든 팀원은 개별 로컬 환경 설정이나 보안 키(Access Key) 등록 없이, 규칙에 맞춰 코드를 병합하는 것만으로 클라우드 서버까지 배포를 완료할 수 있습니다.
+민감 정보(DB 계정, 비밀번호, JWT Secret)는 Git 저장소에 저장하지 않습니다.
 
----
+- Local 환경: `application-local.yml`
+- Kubernetes 환경: `Secret` 또는 `External Secret`
+- AWS Secrets Manager 연동
+- Pod 실행 시 환경 변수로 주입
 
-## 🛠️ 전체 배포 파이프라인 흐름 (GitOps Workflow)
+```text
+AWS Secrets Manager
+        ↓
+External Secret
+        ↓
+Kubernetes Secret
+        ↓
+Spring Boot Pod
+```
 
-1. **[Code Merge]** 개발자가 기능을 완성한 후 `develop` 브랜치로 PR 머지 ➡️ 파이프라인 자동 트리거
-2. **[CI Build]** GitHub Actions 가상 서버가 깨어나 소스 코드를 체크아웃하고 Java 17 빌드 진행
-3. **[OIDC Auth]** AWS 정적 키 대신 OIDC 임시 보안 토큰을 발급받아 안전하게 AWS 내부망 진입 (`GitHubActionsECRRole`)
-4. **[ECR Push]** 빌드된 소스코드를 도커 이미지로 패키징하여 AWS ECR 공용 창고(`team1-course-service`)로 푸시
-5. **[Config Update]** 형제 저장소인 `team1-config`로 찾아가 Kustomize의 이미지 태그 지정을 현재 최신 커밋 해시 값(`github.sha`)으로 자동 원격 치환 후 push
-6. **[ArgoCD Sync]** EKS 클러스터에 심어진 ArgoCD가 태그 변경을 실시간 감지하여, 버튼 클릭 없이 `team1-dev` 네임스페이스에 최신 컨테이너를 **무중단 롤링 업데이트**로 최종 배포
 
----
+## 📋 프로젝트 진행 흐름
 
-## 💡 [중요] 배포마다 ECR에 새 이미지가 쌓이는 이유와 장점
+```
+주제 확정
+    → 레포 분리 설계 (App / Config / Infra)
+    → 역할 분담
+    → Spring Boot 컨테이너화 점검 + Dockerfile 멀티스테이지 정비
+    → Terraform 모듈 작성 (VPC / EKS / RDS / ECR / IAM)
+       + S3 + DynamoDB Backend 구성
+    → EKS 클러스터 생성 + ALB Controller / Gateway API 설정
+    → k8s 매니페스트 작성 (Deployment / Service / HTTPRoute / HPA)
+    → GitHub Actions CI 구성
+       (OIDC → ECR Push → Config 레포 image tag 갱신)
+    → PR 테스트 워크플로우 구성
+       (PR 생성 시 단위 + Testcontainers 통합 테스트 자동 실행)
+    → ArgoCD 설치 → Application 등록 → Config 레포 추적 시작
+    → 서비스 검증 + k6 부하 테스트
+    → AWS 아키텍처 다이어그램 정리
+    → 산출물 정리 → 제출 → 발표
+```
 
-현재 파이프라인은 고정된 태그(예: `latest`)를 덮어쓰지 않고, 배포할 때마다 **완전히 새로운 고유 해시 태그 이미지**를 ECR에 누적 적재합니다. 이는 에러가 아니라 **DevOps 표준 아키텍처**입니다.
-
-### 1. 왜 매번 새로 생성되나요?
-이미지 태그에 깃허브의 고유 커밋 식별 번호인 `${{ github.sha }}`가 붙기 때문입니다. 단 한 글자만 수정해서 푸시해도 태그 이름이 완전히 다르게 생성되므로 기존 이미지와 충돌 없이 독립적으로 창고에 저장됩니다.
-
-### 2. 이 방식이 주는 장점
-* **단 3초 만에 무중단 롤킹 롤백(Rollback) 보장**
-  새로 배포한 기능에 치명적인 버그가 터지더라도, 과거 정상 작동하던 버전의 실물 이미지들이 ECR 창고에 고스란히 살아있습니다. 장애 발생 시 `team1-config` 레포나 ArgoCD 대시보드에서 **이전 커밋 태그로 글자만 슥 바꿔주면 즉각 복구**가 가능합니다.
-* **명확한 버전 추적성**
-  현재 서버에서 돌고 있는 컨테이너가 정확히 어떤 시점의 소스코드로 빌드된 파일인지 이미지 태그(SHA)를 통해 100% 역추적할 수 있어 유지보수가 매우 유리해집니다.
-
----
